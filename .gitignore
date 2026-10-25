@@ -1,0 +1,26 @@
+# .NET 构建产物
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+TestResults/
+*.nupkg
+*.snupkg
+
+# 测试运行产物
+*.uniqueid
+coverage*.xml
+*.cobertura.xml
+TestResults/
+
+# IDE / 编辑器
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# 系统
+.DS_Store
+Thumbs.db

@@ -1,0 +1,112 @@
+# 第 11 章的 GitHub Actions 工作流模板。
+# 用法:把本文件复制到你自己仓库的 .github/workflows/ci.yml,
+# 并把下面所有 code/ 前缀按你的仓库布局调整(本教程的示例工程在 code/Ch11.Ci)。
+# 其中每一条 run 命令都在本机(.NET SDK 10.0.113)真实执行过,见 docs/11-持续集成.md。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "30 18 * * *" # nightly 层:每天 UTC 18:30
+
+# 所有 run 步骤都在 code/ 下执行:dotnet CLI 从当前工作目录向上查找 global.json,
+# 找不到就退回 VSTest 模式——xUnit v3 的 MTP 集成(报告、覆盖率、--filter-trait)全部消失。
+defaults:
+  run:
+    working-directory: code
+
+jobs:
+  unit-smoke:
+    name: unit + smoke(每次 push / PR 必跑)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # 仓库里提交了 packages.lock.json(dotnet restore --use-lock-file 生成),
+      # setup-dotnet 的 NuGet 全局包缓存以它作缓存键;restore 用 --locked-mode 校验一致性。
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      - name: Restore(锁定模式,校验 packages.lock.json)
+        run: dotnet restore Ch11.Ci --locked-mode
+
+      # 分层过滤:这个 job 只跑 unit 与 smoke 两层;
+      # 报告写进固定的 TestResults 目录(相对当前工作目录,即 code/TestResults),
+      # 便于下一步 upload-artifact 用固定路径收集。
+      - name: Test(unit + smoke)
+        run: >
+          dotnet test --project Ch11.Ci --no-restore --configuration Release
+          --filter-trait kind=unit --filter-trait kind=smoke
+          --report-xunit-junit --report-xunit-ctrf
+          --results-directory TestResults
+
+      # if: always() —— 测试红了也要上传报告,红了没报告等于白跑
+      - name: Upload test reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-smoke-reports
+          path: code/TestResults/
+
+  integration:
+    name: integration(覆盖率;不允许跳过)
+    runs-on: ubuntu-latest
+    env:
+      # 集成层的前提:一个可写目录。测试代码只认 CH11_STORE_DIR 这一个入口(11.4)。
+      CH11_STORE_DIR: ${{ runner.temp }}/ch11-store
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      - name: Restore(锁定模式)
+        run: dotnet restore Ch11.Ci --locked-mode
+
+      # --fail-skips on:这一层的测试若被跳过(前提没配好)直接判失败——
+      # "集成 job 绿但什么都没跑"是最危险的假绿。
+      # --coverage-settings 只认绝对路径,用 ${{ github.workspace }} 拼。
+      - name: Test(integration,skips fail the job)
+        run: >
+          dotnet test --project Ch11.Ci --no-restore --configuration Release
+          --filter-trait kind=integration --fail-skips on
+          --coverage --coverage-output-format cobertura
+          --coverage-settings "${{ github.workspace }}/code/Ch11.Ci/coverage.runsettings"
+          --report-xunit-junit
+          --results-directory TestResults
+
+      - name: Upload coverage and reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-results
+          path: code/TestResults/
+
+  nightly:
+    name: nightly 层(仅定时触发;允许零命中)
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+
+      - name: Restore(锁定模式)
+        run: dotnet restore Ch11.Ci --locked-mode
+
+      # kind=nightly 这一层目前一条都没有:过滤器合法落空,退出码 8
+      # 被 --ignore-exit-code 8 豁免成 0(11.6)。
+      - name: Test(nightly layer, zero hits allowed)
+        run: >
+          dotnet test --project Ch11.Ci --no-restore --configuration Release
+          --filter-trait kind=nightly --ignore-exit-code 8

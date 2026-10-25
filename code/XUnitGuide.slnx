@@ -1,0 +1,16 @@
+<Solution>
+  <Project Path="Ch01.GettingStarted/Ch01.GettingStarted.csproj" />
+  <Project Path="Ch02.TestStructure/Ch02.TestStructure.csproj" />
+  <Project Path="Ch03.Assertions/Ch03.Assertions.csproj" />
+  <Project Path="Ch04.Parameterized/Ch04.Parameterized.csproj" />
+  <Project Path="Ch05.Lifecycle/Ch05.Lifecycle.csproj" />
+  <Project Path="Ch06.Parallel/Ch06.Parallel.csproj" />
+  <Project Path="Ch07.Conditional/Ch07.Conditional.csproj" />
+  <Project Path="Ch08.Timeouts/Ch08.Timeouts.csproj" />
+  <Project Path="Ch09.Output.Capture/Ch09.Output.Capture.csproj" />
+  <Project Path="Ch09.Output/Ch09.Output.csproj" />
+  <Project Path="Ch10.Reporting/Ch10.Reporting.csproj" />
+  <Project Path="Ch11.Ci/Ch11.Ci.csproj" />
+  <Project Path="Ch12.Extensibility/Ch12.Extensibility.csproj" />
+  <Project Path="Ch12.MyExtensions/Ch12.MyExtensions.csproj" />
+</Solution>

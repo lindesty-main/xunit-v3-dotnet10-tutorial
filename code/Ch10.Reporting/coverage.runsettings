@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration>
+  <!-- 本章的被测代码在测试程序集里(Production/ 目录),
+       而 IncludeTestAssembly 默认是 false,不开启就没有任何数据 -->
+  <IncludeTestAssembly>True</IncludeTestAssembly>
+  <CodeCoverage>
+    <!-- 只把指定命名空间的代码计入覆盖率:Function 匹配完全限定函数名,
+         Include 非空时其余函数一律排除 -->
+    <Functions>
+      <Include>
+        <Function>^Ch10\.Reporting\.Production\..*</Function>
+      </Include>
+    </Functions>
+  </CodeCoverage>
+</Configuration>
